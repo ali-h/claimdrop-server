@@ -1,0 +1,29 @@
+{
+  "name": "claimdrop-server",
+  "version": "1.0.0",
+  "description": "Server for claimdrop on Steem-Engine. Claims of Tokens through Steem transfers.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alihassanah/claimdrop-server.git"
+  },
+  "keywords": [
+    "JS",
+    "steem",
+    "claimdrop",
+    "steem-engine",
+    "se"
+  ],
+  "author": "Ali H",
+  "bugs": {
+    "url": "https://github.com/alihassanah/claimdrop-server/issues"
+  },
+  "homepage": "https://github.com/alihassanah/claimdrop-server#readme",
+  "dependencies": {
+    "steem": "^0.7.6"
+  }
+}
