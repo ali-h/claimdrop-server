@@ -1,0 +1,13 @@
+{
+    "username" : "",
+    "keys" : {
+        "active" : ""
+    },
+    "memos" : {
+        "not_in_list" : "",
+        "does_not_exist" : "",
+        "time_over" : "",
+        "invalid_fee" : ""
+    },
+    "def_fee" : 0
+}
