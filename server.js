@@ -37,7 +37,6 @@ function getBlock() {
         if (!err) {
             checkBlock(result.transactions, function(resARR) {
                 for (num in resARR) {
-                    console.log(resARR[num])
                     if (resARR[num].log == "eligible") {
                         var list_name = claimdrops[resARR[num].token_id].file_name 
                         var list = fs.readFileSync('./files/' + list_name, "utf-8")
@@ -47,11 +46,15 @@ function getBlock() {
                             }
                             else
                                 resARR[num].reward = res.reward
+                            
+                            console.log(resARR[num])                            
                             queue.push(resARR[num])
                         })
                     }
-                    else
+                    else {
                         queue.push(resARR[num])
+                        console.log(resARR[num])
+                    }
                 }
             })
             writeStream( function () {
@@ -71,15 +74,16 @@ function checkBlock (transactions, callback) {
         for(op_num in transactions[t_num].operations) {
             this_op = transactions[t_num].operations[op_num]            
             if (this_op[0] == "transfer" && this_op[1].to == config.username) {
+                var amount = this_op[1].amount.split(' ')
                 var inf = {
                     "username" : this_op[1].from,
                     "token" : "NULL",
                     "token_id" : 0,
                     "reward" : "0",
+                    "deposit" : this_op[1].amount,
                     "log" : ""
                 }
-                var amount = this_op[1].amount.split(' ')
-                if (parseFloat(amount[0]) >= 1) {
+                if (parseFloat(amount[0]) >= config.def_fee) {
                     var memo = this_op[1].memo.toLowerCase()
                     inf.log = "does_not_exist"
                     for (token_num in claimdrops) {
@@ -105,4 +109,107 @@ function checkBlock (transactions, callback) {
         }
     }
     callback(resARR)
+}
+
+function checkNameInList (list, username, callback) {
+    var usersARR = list.split('\n')
+    if (!usersARR[0] == "") {
+        for (index in usersARR) {
+            if (!usersARR[index] == "") {
+                var this_user = usersARR[index].split(',')
+                if (this_user[0] == username) {
+                    res = {
+                        "reward" : this_user[1].replace("\r", "")
+                    }
+                    callback(res)
+                    return
+                }
+            }
+        }
+        callback(false)
+    }
+    else
+        callback (false)
+}
+function checkQueue() {
+    if (queue.length > 0) {
+        for (queue_num in queue) {
+            if (queue[queue_num].log == "eligible") {
+                var drop = claimdrops[queue[queue_num].token_id]
+                var jsonARR = []                
+                if (drop.type == "stake") {
+                    if (drop.transfer_type == "issue") {
+                        var localJSON = {
+                            "contractName":"tokens",
+                            "contractAction":"issue",
+                            "contractPayload":{
+                                "symbol": drop.symbol,
+                                "to": drop.username,
+                                "quantity": queue[queue_num].reward
+                            }
+                        }
+                        jsonARR.push(localJSON)
+                    }
+                    var localJSON = {
+                        "contractName":"tokens",
+                        "contractAction":"delegate",
+                        "contractPayload":{
+                            "symbol": drop.symbol,
+                            "to": queue[queue_num].username,
+                            "quantity": queue[queue_num].reward
+                        }
+                    }
+                    jsonARR.push(localJSON)
+                }
+                else if (drop.type == "liquid") {
+                    var localJSON = {
+                        "contractName":"tokens",
+                        "contractAction":"transfer",
+                        "contractPayload":{
+                            "symbol": drop.symbol,
+                            "to": queue[queue_num].username,
+                            "quantity": queue[queue_num].reward
+                        }
+                    }
+                    if (drop.transfer_type == "issue") {
+                        localJSON.contractAction = "issue"
+                    }
+                    else if (drop.transfer_type == "transfer") {
+                        localJSON.contractPayload["memo"] = drop.memo
+                    }
+                    jsonARR.push(localJSON)
+                }
+                doJson(jsonARR, queue[queue_num].token_id)
+            }
+            else
+                refund(queue[queue_num])
+        }
+    }
+    else
+    setTimeout(function() { checkQueue() }, 1000)
+}
+
+checkQueue()
+
+function refund(data) {
+    steem.broadcast.transfer(config.keys.active, 
+        config.username, data.username, 
+        data.deposit, 
+        config.memos[data.log], function(err, result) {
+        if (err)
+            console.log(err)
+    })
+}
+
+function doJson(json, id) {
+    steem.broadcast.customJson(
+        claimdrops[id].keys.active, 
+        [claimdrops[id].username], [], 
+        "ssc-mainnet1", 
+        JSON.stringify(json),
+        function(err, result) {
+            if (err) {
+                console.log(err)
+            }
+    })
 }
