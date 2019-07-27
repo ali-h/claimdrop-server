@@ -1,0 +1,16 @@
+[
+    {
+        "symbol" : "",
+        "username" : "",
+        "keys" : {
+            "active" : ""
+        },
+        "start_date" : "",
+        "end_date" : "",
+        "memo" : "",
+        "file_name" : "",
+        "transfer_type" : "",
+        "type" : "",
+        "active" : false
+    }
+]
