@@ -5,6 +5,7 @@
     },
     "memos" : {
         "not_in_list" : "",
+        "already_claimed" : "",
         "does_not_exist" : "",
         "time_over" : "",
         "invalid_fee" : ""
