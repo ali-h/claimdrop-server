@@ -13,7 +13,12 @@ function writeStream(callback) {
             callback()
     })
 }
-
+function writeCALL (call) {
+    fs.appendFile('./database/calls.log', "\n" + JSON.stringify(call), function (err) {
+        if (err)
+            console.log(err)
+    })
+}
 if (streamInfo.lastBlock == 0) {
     steem.api.getDynamicGlobalProperties(function(err, result) {
         if (!err) {
@@ -28,6 +33,8 @@ if (streamInfo.lastBlock == 0) {
 else
     getBlock()
 
+    console.log('\x1b[36m%s\x1b[0m', "Server Started...")
+    console.log("")
 function getBlock() {
     if (!dontRef == 0) {
         streamInfo = JSON.parse(fs.readFileSync('./database/streamInfo.json', "utf-8"))
@@ -35,25 +42,30 @@ function getBlock() {
     }
     steem.api.getBlock(++streamInfo.lastBlock, function(err, result) {
         if (!err) {
+            process.stdout.write("\r" + "lastBlock - " + streamInfo.lastBlock)
             checkBlock(result.transactions, function(resARR) {
                 for (num in resARR) {
                     if (resARR[num].log == "eligible") {
                         var list_name = claimdrops[resARR[num].token_id].file_name 
                         var list = fs.readFileSync('./files/' + list_name, "utf-8")
-                        checkNameInList(list, resARR[num].username, function (res) {
+                        checkNameInList(list, resARR[num].username, list_name, function (res) {
                             if (res == false) {
                                 resARR[num].log = "not_in_list"
                             }
+                            else if (res == "already_claimed")
+                                resARR[num].log = "already_claimed"
                             else
                                 resARR[num].reward = res.reward
                             
-                            console.log(resARR[num])                            
+                            console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
                             queue.push(resARR[num])
+                            writeCALL(resARR[num])
                         })
                     }
                     else {
                         queue.push(resARR[num])
-                        console.log(resARR[num])
+                        console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
+                        writeCALL(resARR[num])
                     }
                 }
             })
@@ -84,10 +96,10 @@ function checkBlock (transactions, callback) {
                     "log" : ""
                 }
                 if (parseFloat(amount[0]) >= config.def_fee) {
-                    var memo = this_op[1].memo.toLowerCase()
+                    var memo = this_op[1].memo.toUpperCase()
                     inf.log = "does_not_exist"
                     for (token_num in claimdrops) {
-                        var phrase = "$" + claimdrops[token_num].symbol.toLowerCase()
+                        var phrase = "$" + claimdrops[token_num].symbol.toUpperCase()
                         if (claimdrops[token_num].active == true) {
                             if (memo.includes(phrase)) {
                                 inf.token_id = token_num
@@ -111,7 +123,7 @@ function checkBlock (transactions, callback) {
     callback(resARR)
 }
 
-function checkNameInList (list, username, callback) {
+function checkNameInList (list, username, list_name, callback) {
     var usersARR = list.split('\n')
     if (!usersARR[0] == "") {
         for (index in usersARR) {
@@ -121,7 +133,14 @@ function checkNameInList (list, username, callback) {
                     res = {
                         "reward" : this_user[1].replace("\r", "")
                     }
-                    callback(res)
+                    var newList = list.replace(username+','+this_user[1], username+'(c),'+this_user[1])
+                    fs.writeFile('./files/' + list_name, newList, function (err) {
+                        callback(res)                        
+                    })
+                    return
+                }
+                else if (this_user[0] == username+'(c)') {
+                    callback('already_claimed')
                     return
                 }
             }
