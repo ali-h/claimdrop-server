@@ -19,15 +19,22 @@ function writeCALL (call) {
             console.log(err)
     })
 }
-if (streamInfo.lastBlock == 0) {
+
+function getLatest(callback) {
     steem.api.getDynamicGlobalProperties(function(err, result) {
         if (!err) {
-            streamInfo.lastBlock = result.head_block_number
-            dontRef = 0
-            getBlock()
+            callback(result.head_block_number)
         }
         else
             console.log(err)
+    })
+}
+
+if (streamInfo.lastBlock == 0) {
+    getLatest(function (block) {
+        streamInfo.lastBlock = block
+        dontRef = 0
+        getBlock()
     })
 }
 else
@@ -36,47 +43,53 @@ else
     console.log('\x1b[36m%s\x1b[0m', "Server Started...")
     console.log("")
 function getBlock() {
-    if (!dontRef == 0) {
-        streamInfo = JSON.parse(fs.readFileSync('./database/streamInfo.json', "utf-8"))
-        claimdrops = JSON.parse(fs.readFileSync('./database/lists.json', "utf-8"))
-    }
-    steem.api.getBlock(++streamInfo.lastBlock, function(err, result) {
-        if (!err) {
-            process.stdout.write("\r" + "lastBlock - " + streamInfo.lastBlock)
-            checkBlock(result.transactions, function(resARR) {
-                for (num in resARR) {
-                    if (resARR[num].log == "eligible") {
-                        var list_name = claimdrops[resARR[num].token_id].file_name 
-                        var list = fs.readFileSync('./files/' + list_name, "utf-8")
-                        checkNameInList(list, resARR[num].username, list_name, function (res) {
-                            if (res == false) {
-                                resARR[num].log = "not_in_list"
+    getLatest(function (block) {
+        if (block > streamInfo.lastBlock) {
+            if (!dontRef == 0) {
+                streamInfo = JSON.parse(fs.readFileSync('./database/streamInfo.json', "utf-8"))
+                claimdrops = JSON.parse(fs.readFileSync('./database/lists.json', "utf-8"))
+            }
+            steem.api.getBlock(++streamInfo.lastBlock, function(err, result) {
+                if (!err) {
+                    process.stdout.write("\r" + "lastBlock - " + streamInfo.lastBlock)
+                    checkBlock(result.transactions, function(resARR) {
+                        for (num in resARR) {
+                            if (resARR[num].log == "eligible") {
+                                var list_name = claimdrops[resARR[num].token_id].file_name 
+                                var list = fs.readFileSync('./files/' + list_name, "utf-8")
+                                checkNameInList(list, resARR[num].username, list_name, function (res) {
+                                    if (res == false) {
+                                        resARR[num].log = "not_in_list"
+                                    }
+                                    else if (res == "already_claimed")
+                                        resARR[num].log = "already_claimed"
+                                    else
+                                        resARR[num].reward = res.reward
+                                    
+                                    console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
+                                    queue.push(resARR[num])
+                                    writeCALL(resARR[num])
+                                })
                             }
-                            else if (res == "already_claimed")
-                                resARR[num].log = "already_claimed"
-                            else
-                                resARR[num].reward = res.reward
-                            
-                            console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
-                            queue.push(resARR[num])
-                            writeCALL(resARR[num])
-                        })
-                    }
-                    else {
-                        queue.push(resARR[num])
-                        console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
-                        writeCALL(resARR[num])
-                    }
+                            else {
+                                queue.push(resARR[num])
+                                console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
+                                writeCALL(resARR[num])
+                            }
+                        }
+                    })
+                    writeStream( function () {
+                        if (!dontRef == 0)
+                            dontRef = 1
+                        getBlock()
+                    })
                 }
-            })
-            writeStream( function () {
-                if (!dontRef == 0)
-                    dontRef = 1
-                getBlock()
+                else
+                    console.log(err)
             })
         }
         else
-            console.log(err)
+            getBlock()
     })
 }
 
