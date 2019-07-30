@@ -25,8 +25,10 @@ function getLatest(callback) {
         if (!err) {
             callback(result.head_block_number)
         }
-        else
-            console.log(err)
+        else {
+            getBlock()
+            return
+        }
     })
 }
 
