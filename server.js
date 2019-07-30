@@ -3,7 +3,7 @@ const fs = require('fs')
 const config = JSON.parse(fs.readFileSync('./config.json', "utf-8"))
 
 var streamInfo = JSON.parse(fs.readFileSync('./database/streamInfo.json', "utf-8"))
-var claimdrops = JSON.parse(fs.readFileSync('./database/list.json', "utf-8"))
+var claimdrops = JSON.parse(fs.readFileSync('./database/lists.json', "utf-8"))
 var dontRef = 1
 var queue = []
 
@@ -47,7 +47,7 @@ function getBlock() {
         if (block > streamInfo.lastBlock) {
             if (!dontRef == 0) {
                 streamInfo = JSON.parse(fs.readFileSync('./database/streamInfo.json', "utf-8"))
-                claimdrops = JSON.parse(fs.readFileSync('./database/list.json', "utf-8"))
+                claimdrops = JSON.parse(fs.readFileSync('./database/lists.json', "utf-8"))
             }
             steem.api.getBlock(++streamInfo.lastBlock, function(err, result) {
                 if (!err) {
@@ -66,14 +66,14 @@ function getBlock() {
                                     else
                                         resARR[num].reward = res.reward
                                     
-                                    console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
+                                    console.log(JSON.stringify(resARR[num]))
                                     queue.push(resARR[num])
                                     writeCALL(resARR[num])
                                 })
                             }
                             else {
                                 queue.push(resARR[num])
-                                console.log("\n" + "New Claim Call - ", "\tFROM : ", resARR[num].username, "\tLOG : ", resARR[num].log)
+                                console.log(JSON.stringify(resARR[num]))
                                 writeCALL(resARR[num])
                             }
                         }
