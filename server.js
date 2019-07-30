@@ -212,9 +212,12 @@ function checkQueue() {
                     jsonARR.push(localJSON)
                 }
                 doJson(jsonARR, queue[queue_num].token_id)
+                writeQueue(queue_num)
             }
-            else
+            else {
                 refund(queue[queue_num])
+                writeQueue(queue_num)
+            }
         }
     }
     else
@@ -222,6 +225,11 @@ function checkQueue() {
 }
 
 checkQueue()
+
+function writeQueue(num) {
+    queue.splice(num, 1)
+    checkQueue()
+}
 
 function refund(data) {
     steem.broadcast.transfer(config.keys.active, 
