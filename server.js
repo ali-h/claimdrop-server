@@ -44,7 +44,8 @@ else
     console.log("")
 function getBlock() {
     getLatest(function (block) {
-        if (block > streamInfo.lastBlock) {
+        var diff = block - streamInfo.lastBlock
+        if (diff > 1) {
             if (!dontRef == 0) {
                 streamInfo = JSON.parse(fs.readFileSync('./database/streamInfo.json', "utf-8"))
                 claimdrops = JSON.parse(fs.readFileSync('./database/list.json', "utf-8"))
