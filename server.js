@@ -69,14 +69,14 @@ function getBlock() {
                                     else
                                         resARR[num].reward = res.reward
                                     
-                                    console.log(JSON.stringify(resARR[num]))
+                                    console.log('\n'+JSON.stringify(resARR[num]))
                                     queue.push(resARR[num])
                                     writeCALL(resARR[num])
                                 })
                             }
                             else {
                                 queue.push(resARR[num])
-                                console.log(JSON.stringify(resARR[num]))
+                                console.log('\n'+JSON.stringify(resARR[num]))
                                 writeCALL(resARR[num])
                             }
                         }
